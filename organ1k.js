@@ -7,6 +7,10 @@
  * http://benalman.com/about/license/
  */
 
+// The code is in a closure with vars explicitly declared for minification
+// purposes (I use YUI). After the code is minified, I remove the closure
+// and any unnecessary var declarations, because they're not needed here.
+
 /*! REMOVE >> */(function(){
 var w,
     h,
