@@ -1,4 +1,4 @@
-# Organik: JS1k contest entry #
+# Organ1k: JS1k contest entry #
 
 [http://benalman.com/code/projects/js1k-organ1k/organ1k.html](http://benalman.com/code/projects/js1k-organ1k/organ1k.html)
 
