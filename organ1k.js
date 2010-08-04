@@ -1,5 +1,5 @@
 /*
- * Organik: JS1k contest entry - 8/04/2010
+ * Organ1k: JS1k contest entry - 8/04/2010
  * http://benalman.com/code/projects/js1k-organ1k/organ1k.html
  * 
  * Copyright (c) 2010 "Cowboy" Ben Alman
