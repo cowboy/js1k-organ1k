@@ -2,13 +2,13 @@
 
 _"An organic play of color that will hopefully keep you staring endlessly."_
 
-Read all about it: 
+Read all about it:  
 [http://benalman.com/news/2010/08/organ1k-js1k-contest-entry/](http://benalman.com/news/2010/08/organ1k-js1k-contest-entry/)
 
-See it:
+See it:  
 [http://benalman.com/code/projects/js1k-organ1k/organ1k.html](http://benalman.com/code/projects/js1k-organ1k/organ1k.html)
 
-Complete source:     
+Complete source:  
 [http://github.com/cowboy/js1k-organ1k](http://github.com/cowboy/js1k-organ1k)
 
 
