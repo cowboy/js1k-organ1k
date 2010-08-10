@@ -14,21 +14,21 @@
 /*! REMOVE >> */(function(){
 var w,
     h,
-    x_mid,
-    y_mid,
+    origin_x,
+    origin_y,
     max_radius,
     tmp,
     tmp2,
-    deg,
     x,
     y,
     r,
     a,
     i,
-    remnant_min_size,
-    remnant_max_size,
-    current,
-    remnant_current,
+    blip_min_size,
+    blip_max_size,
+    blip_scale,
+    theta,
+    blip_current,
     math_mode,
     dir,
     cycle_speed,
@@ -36,7 +36,6 @@ var w,
     last_n,/*! << REMOVE, ALSO REMOVE FOLLOWING COMMA >> */
     
     // Keep the following var declarations.
-    W = this,
     d = document,
     si = setInterval,
     s = d.body.style,
@@ -48,80 +47,72 @@ var w,
     min = M.min,
     sin = M.sin,
     cos = M.cos,
-    pow = M.pow,
     rnd = M.random,
     
-    //num_items = 32,
-    //max_remnants = 300,
+    num_colors = 8,
+    num_items = 32,
+    max_blips = 300,
     
-    remnant_colors = 'f001fa01ff0107010ff100f14081e8e'.split(1),
+    colors = 'f001fa01ff0107010ff100f14081e8e'.split(1),
     
     items = [],
-    remnants = [];
+    blips = [];
     
-    current = remnant_current = math_mode = last_n = s.margin = 0;
-    dir = cycle_speed = delay_speed = 1;
-    remnant_min_size = 3;
-    remnant_max_size = 8;
+    blip_current = math_mode = last_n = s.margin = 0;
+    cycle_speed = delay_speed = 2;
+    blip_min_size = 3;
+    blip_max_size = 8;
+    theta = rnd() * 360;
+    dir = rnd() < 0.5 ? 1 : -1;
 
 s.overflow = 'hidden';
 
 // "int main(void)"
 si(function(){
   // Set these values in each iteration to allow the window to be resized.
-  w = C.width = W.innerWidth;
-  h = C.height = W.innerHeight;
-  max_radius = min( x_mid = w / 2, y_mid = h / 2 ) - ( remnant_max_size * 2 );
-  
-  // Update items.
-  //for ( i = 0; i <= num_items; i++ ) {
-  for ( i = 0; i < 33; i++ ) {
-    tmp = items[i] || ( items[i] = {
-      x: x_mid,
-      y: y_mid
-    } );
-    
-    if ( i ) {
-      tmp2 = items[ i - 1 ];
-      tmp.x += ( tmp2.x - tmp.x ) / ( delay_speed + 1 );
-      tmp.y += ( tmp2.y - tmp.y ) / ( delay_speed + 1 );
-    }
-  }
+  w = C.width = innerWidth;
+  h = C.height = innerHeight;
+  max_radius = min( origin_x = w / 2, origin_y = h / 2 );
+  blip_scale = max_radius / 400;
+  max_radius -= 20 * blip_scale;
   
   // Do some math!
   if ( math_mode <= 1 ) {
     // Circle.
-    current -= cycle_speed * dir * 4;
+    theta -= cycle_speed * dir * 4;
     
-    x = sin( deg = current * pi_over_180 ) * max_radius;
-    y = cos( deg ) * max_radius;
+    x = sin( theta * pi_over_180 ) * max_radius;
+    y = cos( theta * pi_over_180 ) * max_radius;
     
   } else {
     // Spiro.
-    current -= cycle_speed * dir * 2;
+    theta -= cycle_speed * dir * 2;
     
-    x = sin( deg = current * pi_over_180 ) * max_radius;
-    
-    r = M.sqrt( pow( x, 2 ) + pow( y = 0, 2 ) );
-    a = M.atan2( y, x ) + ( deg / math_mode );// [ 2, -5, 1.5, 7, 4 ][ ~~math_mode - 1 ] );
+    r = M.abs( x = sin( theta * pi_over_180 ) * max_radius );
+    a = M.atan2( 0, x ) + ( theta * pi_over_180 / math_mode );
     
     x = r * cos( a );
     y = r * sin( a );
   }
   
-  items[0].x = x_mid + x;
-  items[0].y = y_mid + y;
-  
-  //for ( i = 0, len = remnant_colors.length; i < len; i++ ) {
-  //  tmp = items[ ~~( num_items / ( len - 1 ) * i ) ];
-  for ( i = 0; i < 8; i++ ) {
-    tmp = items[ 4 * i ];
+  // Update items.
+  for ( i = 0; i < num_items; i++ ) {
+    tmp = items[i] = items[i] || { x: 0, y: 0 };
     
-    //remnants[ remnant_current++ % max_remnants ] = {
-    remnants[ remnant_current++ % 300 ] = {
+    tmp2 = items[ i - 1 ];
+    
+    tmp.x = i ? tmp.x + ( tmp2.x - tmp.x ) / delay_speed : x;
+    tmp.y = i ? tmp.y + ( tmp2.y - tmp.y ) / delay_speed : y;
+  }
+  
+  // Add (or replace) new blips.
+  for ( i = 0; i < num_colors; i++ ) {
+    tmp = items[ ~~( i * ( num_items - 1 ) / ( num_colors - 1 ) ) ];
+    
+    blips[ blip_current++ % max_blips ] = {
       s: 1,
       d: 1,
-      c: remnant_colors[i],
+      c: colors[i],
       x: tmp.x,
       y: tmp.y
     };
@@ -130,19 +121,19 @@ si(function(){
   // BG fill
   c.fillRect( i = 0, 0, w, h );
   
-  // Draw "circle" remnants.
-  while ( tmp = remnants[i++] ) {
+  // Draw blips.
+  while ( tmp = blips[i++] ) {
     
-    // Pulse the circle.
+    // Pulse the blip.
     tmp.s += tmp.d;
-    tmp.d = tmp.s >= remnant_max_size ? -1
-          : tmp.s <= remnant_min_size ? 1
+    tmp.d = tmp.s >= blip_max_size ? -1
+          : tmp.s <= blip_min_size ? 1
           : tmp.d;
     
-    // Draw the circle.
+    // Draw the blip.
     c.fillStyle = '#' + tmp.c;
     c.beginPath();
-    c.arc( tmp.x, tmp.y, tmp.s, 0, pi * 2, false );
+    c.arc( origin_x + tmp.x, origin_y + tmp.y, tmp.s * blip_scale, 0, pi * 2, 0 );
     c.fill();
   }
   
@@ -164,7 +155,7 @@ si(function( n, r1 ){ // define vars here to keep YUI from munging to aa, ab!
     
   } else if ( n < 2 ) {
     // Cycle colors.
-    remnant_colors.push( remnant_colors.shift() );
+    colors.push( colors.shift() );
     
   } else if ( n < 3 ) {
     // Change the overall pattern / shape.
@@ -176,15 +167,15 @@ si(function( n, r1 ){ // define vars here to keep YUI from munging to aa, ab!
     
   } else if ( n < 5 ) {
     // Change the "tightness".
-    delay_speed = r1 * 3;
+    delay_speed = r1 * 3 + 1;
     
   } else {
-    // Change remnant pulse sizes.
-    remnant_max_size = r1 * 10 + 6;
-    remnant_min_size = min( remnant_max_size - 4, rnd() * 5 + 2 );
+    // Change blip pulse sizes.
+    blip_max_size = r1 * 10 + 6;
+    blip_min_size = min( blip_max_size - 4, rnd() * 5 + 2 );
   }
   
-}, 1024) // "tounge in cheek"
+}, 1024) // "tongue in cheek"
 /*! REMOVE >> */
 
 /*
@@ -202,8 +193,8 @@ si(function(){
     'math_mode : ' + parseInt( math_mode * 100 ) / 100,
     'cycle_speed : ' + parseInt( cycle_speed * 100 ) / 100,
     'delay_speed : ' + parseInt( delay_speed * 100 ) / 100,
-    'remnant_max_size : ' + parseInt( remnant_max_size * 100 ) / 100,
-    'remnant_min_size : ' + parseInt( remnant_min_size * 100 ) / 100
+    'blip_max_size : ' + parseInt( blip_max_size * 100 ) / 100,
+    'blip_min_size : ' + parseInt( blip_min_size * 100 ) / 100
   ].join('<br>');
 }, 15);
 
