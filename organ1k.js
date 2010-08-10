@@ -1,5 +1,5 @@
 /*
- * Organ1k: JS1k contest entry - 8/04/2010
+ * Organ1k: JS1k contest entry - 8/10/2010
  * http://benalman.com/code/projects/js1k-organ1k/organ1k.html
  * 
  * Copyright (c) 2010 "Cowboy" Ben Alman
@@ -120,6 +120,16 @@ si(function(){
   
   // BG fill
   c.fillRect( i = 0, 0, w, h );
+  
+  // Draw items
+  /*
+  for ( i = num_items; i; i-- ) {
+    c.fillStyle = '#fff';
+    c.beginPath();
+    c.arc( origin_x + items[i-1].x, origin_y + items[i-1].y, 5, 0, pi * 2, 0 );
+    c.fill();
+  }
+  */
   
   // Draw blips.
   while ( tmp = blips[i++] ) {
