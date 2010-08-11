@@ -173,9 +173,9 @@
     while ( tmp = blips[i++] ) {
       
       // Pulse the blip.
-      tmp.s += tmp.d;
-      tmp.d = tmp.s > blip_max_size ? -1
-            : tmp.s < blip_min_size ? 1
+      tmp2 = tmp.s += tmp.d;
+      tmp.d = tmp2 > blip_max_size ? -1
+            : tmp2 < blip_min_size ? 1
             : tmp.d;
       
       // Draw the blip.
@@ -185,7 +185,7 @@
       context.fill();
     }
     
-  }, 30 /* 1e3 / fps */ )
+  }, 1e3 / fps )
 
 /*!STRIP>>*/
 })()
