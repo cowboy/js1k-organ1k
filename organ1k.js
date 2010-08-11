@@ -1,5 +1,5 @@
 /*
- * Organ1k: JS1k contest entry - 8/10/2010
+ * Organ1k: JS1k contest entry - 8/11/2010
  * http://benalman.com/code/projects/js1k-organ1k/organ1k.html
  * 
  * Copyright (c) 2010 "Cowboy" Ben Alman
@@ -7,10 +7,27 @@
  * http://benalman.com/about/license/
  */
 
-(function(fps,colors,num_items,max_blips){
+(function(){
   
-  var doc = document,
-      style = doc.body.style,
+  var width,
+      height,
+      origin_x,
+      origin_y,
+      x,
+      y,
+      
+      frame,
+      blip_current,
+      math_mode,
+      last_n,
+      
+      cycle_speed,
+      delay_speed,
+      /*!<<STRIP*/
+      
+      doc = document,
+      body = doc.body,
+      style = body.style,
       canvas = doc.getElementById( 'c' ),
       context = canvas.getContext( '2d' ),
       
@@ -22,35 +39,44 @@
       cos = math.cos,
       rnd = math.random,
       
-      theta = rnd() * 360,
-      dir = rnd() < 0.5 ? 1 : -1,
-      
       items = [],
       blips = [],
       
-      num_colors = colors.length,
+      fps = 33,
+      colors = 'f001fa01ff0107010ff100f14081e8e'.split(1),
+      
+      //max_blips = 300,
+      //num_items = 32,
+      //num_colors = colors.length,
+      
+      theta = rnd() * 360,
+      dir = rnd() < 0.5 ? 1 : -1,
       
       blip_min_size = 4,
       blip_max_size = 7,
       
-      frame,
-      blip_current,
-      math_mode,
-      last_n = frame = blip_current = math_mode = style.margin = 0,
-      
-      cycle_speed,
-      delay_speed = cycle_speed = 2;
+      since_moved = fps;
+  
+  frame = blip_current = math_mode = last_n = style.margin = 0;
+  cycle_speed = delay_speed = 2;
   
   style.overflow = 'hidden';
   
+  // Allow user to "take control" by moving the mouse.
+  body.onmousemove = function(event){
+    since_moved = 0;
+    x = event.clientX - origin_x;
+    y = event.clientY - origin_y;
+  };
+  
   // "int main(void)"
-  setInterval(function(width,height,max_radius,origin_x,origin_y,blip_scale,x,y,i,tmp,tmp2){
+  setInterval(function(max_radius,blip_scale,i,tmp,tmp2){
     
     // Automated random mode changer.
     frame = ++frame % fps;
     if ( !frame ) {
-      // Change a mode, as long as it's not the last mode changed.
-      while ( last_n == ~~( tmp = rnd() * 6 ) ) {};
+      // Change the mode, as long as it's not the last mode changed.
+      while ( last_n == ~~( tmp = rnd() * 6 ) );
       last_n = ~~tmp;
       
       // This random value drives most of the following modes.
@@ -77,27 +103,36 @@
     blip_scale = max_radius / 400;
     max_radius -= 20 * blip_scale;
     
-    // Let's do some math!
-    if ( math_mode <= 1 ) {
-      // Circle.
-      theta -= cycle_speed * dir * 4;
+    // Only override mouse movement generated x/y if mouse hasn't moved within
+    // the last second.
+    if ( ++since_moved > fps ) {
       
-      x = sin( theta * pi_over_180 ) * max_radius;
-      y = cos( theta * pi_over_180 ) * max_radius;
+      // Let's do some math!
+      if ( math_mode <= 1 ) {
+        // Circle.
+        theta -= cycle_speed * dir * 4;
+        
+        x = sin( theta * pi_over_180 ) * max_radius;
+        y = cos( theta * pi_over_180 ) * max_radius;
+        
+      } else {
+        // Spiro.
+        theta -= cycle_speed * dir * 2;
+        
+        tmp = math.abs( x = sin( theta * pi_over_180 ) * max_radius );
+        
+        x = tmp * cos( tmp2 = math.atan2( 0, x ) + theta * pi_over_180 / math_mode );
+        y = tmp * sin( tmp2 );
+      }
       
-    } else {
-      // Spiro.
-      theta -= cycle_speed * dir * 2;
-      
-      tmp = math.abs( x = sin( theta * pi_over_180 ) * max_radius );
-      
-      x = tmp * cos( tmp2 = math.atan2( 0, x ) + theta * pi_over_180 / math_mode );
-      y = tmp * sin( tmp2 );
     }
     
-    // Update items. The items work like "mouse trails" and the blips are
-    // just drawn from where the items are at a given point in time.
-    for ( i = 0; i < num_items; i++ ) {
+    // Update items. The 0th item x/y coordinates are set to the point the
+    // previous "math" code computed, then, just like "mouse trails," each
+    // subsequent item is moved to somewhere in between its current position
+    // and its just-set predecessor's position. Un-comment the "Draw items"
+    // section to see these items displayed in white.
+    for ( i = 0; i < 32; i++ ) {
       tmp = items[i] = items[i] || { x: 0, y: 0 };
       
       tmp2 = items[ i - 1 ];
@@ -108,9 +143,10 @@
     
     // Add new (or replace existing) blips.
     i = 0;
-    while ( tmp = items[ ~~( i * ( num_items - 1 ) / ( num_colors - 1 ) ) ] ) {
+    //while ( tmp = items[ ~~( i * ( num_items - 1 ) / ( num_colors - 1 ) ) ] ) {
+    while ( tmp = items[ i * 4 ] ) {
       
-      blips[ blip_current++ % max_blips ] = {
+      blips[ blip_current++ % 300 /*max_blips*/ ] = {
         s: 1,
         d: 1,
         c: colors[i++],
@@ -119,12 +155,13 @@
       };
     }
     
-    // BG fill
+    // BG fill.
     context.fillRect( i = 0, 0, width, height );
     
-    // Draw items
+    // Draw items (uncomment to see how items actually track the mouse or x/y)
     /*
-    for ( i = num_items; i; i-- ) {
+    //for ( i = num_items; i; i-- ) {
+    for ( i = 32; i; i-- ) {
       context.fillStyle = '#fff';
       context.beginPath();
       context.arc( origin_x + items[i-1].x, origin_y + items[i-1].y, 5, 0, pi * 2, 0 );
@@ -148,6 +185,7 @@
       context.fill();
     }
     
-  }, 1000 / fps )
-  
-})(33,'f001fa01ff0107010ff100f14081e8e'.split(1),32,300)
+  }, 30 /* 1e3 / fps */ )
+
+/*!STRIP>>*/
+})()
