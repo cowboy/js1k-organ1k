@@ -170,17 +170,20 @@
       theta = rnd(
         
         /*
-        // While assigning a variable inside the parens of a function call
-        // that doesn't accept any arguments is ugly, it saves a byte, so I do
-        // it A LOT. Also note that expressions passed as function arguments
-        // are evaluated before the function is invoked, so a(b=1) is
-        // equivalent to b=1;a(), and not a();b=1
+        // While assigning a variable or invoking a function inside the parens
+        // of a function call that doesn't accept any arguments is ugly, it
+        // saves a byte, so I do it A LOT. Also note that expressions passed as
+        // function arguments are evaluated before the function is invoked, so
+        // a(b=1) is equivalent to b=1;a(), NOT a();b=1, just like a(b()) is
+        // equivalent to b();a(), NOT a();b().
         
         // Before (minified + munged):
         b=1;a()
+        b();a()
         
         // After (minified + munged):
         a(b=1)
+        a(b())
         
         // Also note that this can be used, arguably, more legitimately to save
         // bytes assigning variables when the value being assigned is also
