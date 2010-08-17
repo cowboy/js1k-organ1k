@@ -1,5 +1,5 @@
 /*
- * Organ1k: JS1k contest entry - 8/11/2010
+ * Organ1k: JS1k contest entry - 8/17/2010
  * http://benalman.com/code/projects/js1k-organ1k/organ1k.html
  * 
  * Copyright (c) 2010 "Cowboy" Ben Alman
@@ -7,8 +7,21 @@
  * http://benalman.com/about/license/
  */
 
-(function(){
+(function(doc){
+  /*
+  // Passing a single var into the closure nets us two bytes of savings, but
+  // since any more than that doesn't help, it's not worth doing for (cough)
+  // readability concerns. Note that passing *all* variables into the closure
+  // would net an additional 4 bytes, but that's not an option here, since
+  // some of the vars are initialized based on other vars' values. It is an
+  // option, however, in the function passed into setInterval further down.
   
+  (function(){var a=document,b=Math,c=1;e()})()
+  (function(a){var b=Math,c=1;e()})(document) // Two bytes saved.
+  (function(a,b){var c=1;e()})(document,Math) // No additional byte savings.
+  (function(a,b,c){e()})(document,Math,1)     // Not an option in this case.
+  
+  */
   var width,
       height,
       origin_x,
@@ -16,99 +29,249 @@
       x,
       y,
       
-      frame,
-      blip_current,
-      math_mode,
-      last_n,
-      
-      cycle_speed,
-      delay_speed,
-      /*!<<STRIP*/
-      
-      doc = document,
-      body = doc.body,
-      style = body.style,
+      style = doc.body.style,
       canvas = doc.getElementById( 'c' ),
       context = canvas.getContext( '2d' ),
       
+      // 32 is not only the number of items, but close enough to fps (33) and
+      // 1e3/fps (30) to be reused, saving a byte or two.
+      thirty_two = 32, //fps = 33,
+      
+      // 360 is not only used for some of the math but is close enough to the
+      // blip_scale divisor of 400 to be reused there as well, saving a byte.
+      three_sixty = 360,
+      
+      /*
+      // Since all Math methods are static, another variable can be set to
+      // reference Math, allowing a compressor to munge that variable name down
+      // to a single character, saving bytes. You can see that due to the
+      // "a=Math," assignment adding 7 bytes but each "a" replacing "Math"
+      // saving 3 bytes, when used three or more times, there's a net savings.
+      
+      // Before (minified + munged):
+      a=Math.min,b=Math.sin,c=Math.cos
+      
+      // After (minified + munged):
+      a=Math,b=a.min,c=a.sin,d=a.cos
+      
+      // Note that it's only worthwhile to do this for methods that will be
+      // used enough times to justify the byte-cost of their assignment. For
+      // example, becase the Math.min "min" method name is 3 characters long,
+      // it would need to be used 3+ times to save bytes (2 times is a wash).
+      // Because the Math.random "random" method name is 6 characters long,
+      // using it just twice saves bytes.
+      
+      // Before (minified + munged):
+      a.min();a.min();a.min()
+      a.random();a.random()
+      
+      // After (minified + munged):
+      b=a.min;b();b();b()
+      b=a.random;b();b()
+      
+      // Also note that this only works for static methods. If the method is
+      // an instance/prototyped method that uses `this` internally, you would
+      // need to save bytes through strings and [] property access. First, the
+      // invalid approach:
+      
+      // Before (minified + munged):
+      a=document,x=a.getElementById('x'),y=a.getElementById('y')
+      
+      // After (minified + munged):
+      a=document.getElementById,x=a('x'),y=a('y')  // Error!
+      
+      // This is a legitimate way to approach byte reduction in this scenario.
+      // You don't see as large a byte savings, but it actually works, which
+      // is a pretty huge plus.
+      
+      // Before (minified + munged):
+      a=document,x=a.getElementById('x'),y=a.getElementById('y')
+      
+      // After (minified + munged):
+      a=document,b='getElementById',x=a[b]('x'),y=a[b]('y')
+      
+      */
       math = Math,
-      pi = math.PI,
-      pi_over_180 = pi / 180,
       min = math.min,
       sin = math.sin,
       cos = math.cos,
       rnd = math.random,
       
+      // Due to the way the math and circle drawing is done (and the
+      // aforementioned three_sixty variable), it saves bytes to have a
+      // reference to pi * 2 instead of just pi.
+      pi2 = math.PI * 2,
+      pi_over_180 = pi2 / three_sixty,
+      
+      frame = 0,
+      blip_current = 0,
+      math_mode = 0,
+      last_n = 0,
+      
+      /*
+      // Because assignment operators have right-to-left associativity, it can
+      // save bytes to initializing multple variables simultaneously.
+      
+      // Before (minified + munged):
+      a=obj,b=0;a.prop=0
+      
+      // After (minified + munged):
+      a=obj,b=a.prop=0
+      
+      */
+      color_idx = style.margin = 0,
+      
+      cycle_speed = 2,
+      delay_speed = 2,
+      
+      blip_min_size = 3,
+      blip_max_size = 6,
+      
+      since_moved = thirty_two, // fps,
+      
       items = [],
       blips = [],
       
-      fps = 33,
+      /*
+      // Due to the overhead in using quotes and commas in an array literal,
+      // if that array has 6+ items, it saves bytes to split a string instead.
+      // Note that two further bytes can be saved by joining/splitting the
+      // string on a number.
+      
+      // Before (minified + munged):
+      ['aa','bb','cc','dd','ee','ff']
+      
+      // After (minified + munged):
+      'aa bb cc dd ee ff'.split(' ')
+      
+      // Joined/split on a number:
+      'aa1bb1cc1dd1ee1ff'.split(1)
+      
+      // Also, if each item is a single character, splitting on '' saves bytes
+      // if the array has 4+ items.
+      
+      // Before (minified + munged):
+      ['a','b','c','d']
+      
+      // After (minified + munged):
+      'abcd'.split('')
+      
+      */
       colors = 'f001fa01ff0107010ff100f14081e8e'.split(1),
       
-      //max_blips = 300,
-      //num_items = 32,
-      //num_colors = colors.length,
+      // These variables had to be removed due to byte considerations. While
+      // hard-coding values is impractical from a readability/maintainance
+      // standpoint, it can make the resulting code smaller.
       
-      theta = rnd() * 360,
-      dir = rnd() < 0.5 ? 1 : -1,
+      // max_blips = 300,
+      // num_items = 32,
+      // num_colors = colors.length,
       
-      blip_min_size = 4,
-      blip_max_size = 7,
+      theta = rnd(
+        
+        /*
+        // While assigning a variable inside the parens of a function call
+        // that doesn't accept any arguments is ugly, it saves a byte, so I do
+        // it A LOT. Also note that expressions passed as function arguments
+        // are evaluated before the function is invoked, so a(b=1) is
+        // equivalent to b=1;a(), and not a();b=1
+        
+        // Before (minified + munged):
+        b=1;a()
+        
+        // After (minified + munged):
+        a(b=1)
+        
+        // Also note that this can be used, arguably, more legitimately to save
+        // bytes assigning variables when the value being assigned is also
+        // being passed in as a function argument.
+        
+        // Before (minified + munged):
+        b=0;a(0)
+        
+        // After (minified + munged):
+        a(b=0)
+        
+        */
+        style.overflow = 'hidden'
+        
+      ) * three_sixty,
       
-      since_moved = fps;
-  
-  frame = blip_current = math_mode = last_n = style.margin = 0;
-  cycle_speed = delay_speed = 2;
-  
-  style.overflow = 'hidden';
-  
-  // Allow user to "take control" by moving the mouse.
-  body.onmousemove = function(event){
-    since_moved = 0;
-    x = event.clientX - origin_x;
-    y = event.clientY - origin_y;
-  };
-  
+      dir = rnd(
+        
+        // Allow user to "take control" by moving the mouse.
+        onmousemove = function(event){
+          since_moved = 0;
+          x = event.clientX - origin_x;
+          y = event.clientY - origin_y;
+        }
+      
+      ) < 0.5 ? 1 : -1;
+      
   // "int main(void)"
+  //
+  // Note that due to the Firefox "lateness" argument, the first argument to
+  // the function passed to both setInterval and setTimeout might be a
+  // a seemingly random number. Fortunately, the first argument here is always
+  // overridden, so this is a non-issue. See this article for more info:
+  // http://benalman.com/news/2009/07/the-mysterious-firefox-settime/
   setInterval(function(max_radius,blip_scale,i,tmp,tmp2){
     
     // Automated random mode changer.
-    frame = ++frame % fps;
-    if ( !frame ) {
+    if ( !( ++frame % thirty_two /* fps */ ) ) {
+      
+      // For a while loop whose logic is contained entirely in the parens,
+      // the empty {} can be replaced with ; (at least in the specified
+      // browsers, as well as IE9).
+      
       // Change the mode, as long as it's not the last mode changed.
-      while ( last_n == ~~( tmp = rnd() * 6 ) );
+      while ( last_n == ~~( tmp = rnd( tmp2 = rnd() ) * 6 ) );
       last_n = ~~tmp;
       
-      // This random value drives most of the following modes.
-      tmp2 = rnd();
+      /*
+      // Note that this ternary structure uses significantly less bytes than
+      // the comparable if/else structure, and due to operator precedence and
+      // the fact that there's only one statement per condition, assignments
+      // can be made without any extra parens.
       
+      // Before (minified + munged):
+      if(a){b=1}else if(c){d=2}else{e=3}
+      if(a)b=1;else if(c)d=2;else e=3
+      
+      // After (minified + munged):
+      a?b=1:c?d=2:e=3
+      
+      // Also note that since YUI compressor won't remove the leading 0 in 0.5
+      // (and will actually add it back in if you remove it), this is adjusted
+      // in minify.sh post-minification.
+      */
       // Change directions.
-      tmp < 0.4 ? ( dir = -dir )
+      tmp < 0.4 ? dir = -dir
       // Cycle colors.
-      : tmp < 2 ? colors.push( colors.shift() )
+      : tmp < 2 ? color_idx++
       // Change the overall pattern / shape.
-      : tmp < 3 ? ( math_mode = tmp2 * 7 )
+      : tmp < 3 ? math_mode = tmp2 * 7
       // Change the rotational velocity.
-      : tmp < 4 ? ( cycle_speed = tmp2 * 8 + 1 )
+      : tmp < 4 ? cycle_speed = tmp2 * 8 + 1
       // Change the "tightness".
-      : tmp < 5 ? ( delay_speed = tmp2 * 3 + 1 )
+      : tmp < 5 ? delay_speed = tmp2 * 3 + 1
       // Change blip pulse sizes.
-      : blip_min_size = min( blip_max_size = tmp2 * 10 + 5, rnd() * 5 + 5 ) - 2;
+      : blip_min_size = min( blip_max_size = tmp2 * 8 + 4, rnd() * 5 + 5 ) - 2;
     }
     
     // Set these values in each iteration to allow the window to be resized.
     width = canvas.width = innerWidth;
     height = canvas.height = innerHeight;
     max_radius = min( origin_x = width / 2, origin_y = height / 2 );
-    blip_scale = max_radius / 400;
+    blip_scale = max_radius / three_sixty; // 400;
     max_radius -= 20 * blip_scale;
     
     // Only override mouse movement generated x/y if mouse hasn't moved within
     // the last second.
-    if ( ++since_moved > fps ) {
+    if ( ++since_moved > thirty_two /* fps */ ) {
       
       // Let's do some math!
-      if ( math_mode <= 1 ) {
+      if ( math_mode < 1 ) {
         // Circle.
         theta -= cycle_speed * dir * 4;
         
@@ -126,30 +289,47 @@
       }
       
     }
+    /*
+    // If the counter var is already being used inside the for loop, one byte
+    // can be saved by incrementing it the last time it's used in the loop,
+    // instead of explicitly inside the for's parens. Reverse-for loops can
+    // actually be even smaller, but the internal application logic in place
+    // precludes their use here.
     
+    // Before (minified + munged):
+    for(i=0;i<a;i++){b(i);c(i)}
+    
+    // After (minified + munged):
+    for(i=0;i<a;){b(i);c(i++)}
+    
+    */
     // Update items. The 0th item x/y coordinates are set to the point the
     // previous "math" code computed, then, just like "mouse trails," each
     // subsequent item is moved to somewhere in between its current position
     // and its just-set predecessor's position. Un-comment the "Draw items"
     // section to see these items displayed in white.
-    for ( i = 0; i < 32; i++ ) {
+    for ( i = 0; i < thirty_two /* num_colors * 4 */; ) {
+      
+      // This is a very byte-conscious way to set a variable to an array item,
+      // initializing the item if it hasn't already been initialized. The
+      // performance hit incurred by assigning an item to itself (once it's
+      // already been initialized) is negligible.
       tmp = items[i] = items[i] || { x: 0, y: 0 };
       
       tmp2 = items[ i - 1 ];
       
       tmp.x = i ? tmp.x + ( tmp2.x - tmp.x ) / delay_speed : x;
-      tmp.y = i ? tmp.y + ( tmp2.y - tmp.y ) / delay_speed : y;
+      tmp.y = i++ ? tmp.y + ( tmp2.y - tmp.y ) / delay_speed : y;
     }
     
     // Add new (or replace existing) blips.
-    i = 0;
     //while ( tmp = items[ ~~( i * ( num_items - 1 ) / ( num_colors - 1 ) ) ] ) {
-    while ( tmp = items[ i * 4 ] ) {
+    for ( i = 0; tmp = items[ i * 4 ]; ) {
       
-      blips[ blip_current++ % 300 /*max_blips*/ ] = {
+      blips[ blip_current++ % three_sixty /*max_blips*/ ] = {
         s: 1,
         d: 1,
-        c: colors[i++],
+        c: colors[ ( color_idx + i++ ) % 8 /* num_colors */ ],
         x: tmp.x,
         y: tmp.y
       };
@@ -157,17 +337,6 @@
     
     // BG fill.
     context.fillRect( i = 0, 0, width, height );
-    
-    // Draw items (uncomment to see how items actually track the mouse or x/y)
-    /*
-    //for ( i = num_items; i; i-- ) {
-    for ( i = 32; i; i-- ) {
-      context.fillStyle = '#fff';
-      context.beginPath();
-      context.arc( origin_x + items[i-1].x, origin_y + items[i-1].y, 5, 0, pi * 2, 0 );
-      context.fill();
-    }
-    */
     
     // Draw blips.
     while ( tmp = blips[i++] ) {
@@ -179,13 +348,30 @@
             : tmp.d;
       
       // Draw the blip.
-      context.fillStyle = '#' + tmp.c;
-      context.beginPath();
-      context.arc( origin_x + tmp.x, origin_y + tmp.y, tmp.s * blip_scale, 0, pi * 2, 0 );
-      context.fill();
+      context.beginPath( context.fillStyle = '#' + tmp.c );
+      context.fill( context.arc( origin_x + tmp.x, origin_y + tmp.y, tmp2 * blip_scale, 0, pi2, 0 ) );
     }
     
-  }, 1e3 / fps )
+    // Draw items (uncomment to see how items actually track the mouse or x/y)
+    /*
+    context.fillStyle = 'rgba(0,0,0,0.5)';
+    context.fillRect( 0, 0, width, height );
+    
+    // One less byte than a decrementing while loop, actually.
+    for ( i = thirty_two; i--; ) {
+      tmp = items[ i ];
+      tmp2 = 7 * blip_scale * ( thirty_two - i ) / thirty_two + 1;
+      
+      context.strokeStyle = '#fff';
+      context.lineWidth = tmp2 / 4;
+      context.beginPath();
+      context.arc( origin_x + tmp.x, origin_y + tmp.y, tmp2, 0, pi2, 0 );
+      context.stroke();
+    }
+    */
+    
+  }, thirty_two /* 1e3 / fps */ )
 
-/*!STRIP>>*/
-})()
+// Since YUI compressor adds a trailing ; to its output, this is adjusted
+// in minify.sh post-minification.
+})(document)
