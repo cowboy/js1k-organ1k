@@ -171,11 +171,11 @@
         
         /*
         // While assigning a variable or invoking a function inside the parens
-        // of a function call that doesn't accept any arguments is ugly, it
-        // saves a byte, so I do it A LOT. Also note that expressions passed as
-        // function arguments are evaluated before the function is invoked, so
-        // a(b=1) is equivalent to b=1;a(), NOT a();b=1, just like a(b()) is
-        // equivalent to b();a(), NOT a();b().
+        // of a nullary function is ugly, it saves a byte, so I do it A LOT.
+        // Also note that expressions passed as function arguments will be
+        // evaluated before the function is invoked, so a(b=1) is equivalent to
+        // b=1;a(), NOT a();b=1, just like a(b()) is equivalent to b();a(), NOT
+        // a();b().
         
         // Before (minified + munged):
         b=1;a()
