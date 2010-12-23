@@ -1,5 +1,5 @@
 /*
- * Organ1k: JS1k contest entry - 8/17/2010
+ * Organ1k-Xmas: JS1k Xmas contest entry - 12/23/2010
  * http://benalman.com/code/projects/js1k-organ1k/organ1k.html
  * 
  * Copyright (c) 2010 "Cowboy" Ben Alman
@@ -7,7 +7,12 @@
  * http://benalman.com/about/license/
  */
 
-(function(doc){
+// Normally, you can signify to the JavaScript parser that an immediately
+// invoked function is being defined as a function expression by wrapping it
+// in parens. Since I don't care about the return value of the function, it
+// can still be  invoked immediately, just as long as I prefix it with a unary
+// operator, like ! ~ + -.
+with(Math)with(a)!function(txt,colors){
   /*
   // Passing a single var into the closure nets us two bytes of savings, but
   // since any more than that doesn't help, it's not worth doing for (cough)
@@ -29,9 +34,7 @@
       x,
       y,
       
-      style = doc.body.style,
-      canvas = doc.getElementById( 'c' ),
-      context = canvas.getContext( '2d' ),
+      style = b.style,
       
       // 32 is not only the number of items, but close enough to fps (33) and
       // 1e3/fps (30) to be reused, saving a byte or two.
@@ -91,22 +94,18 @@
       a=document,b='getElementById',x=a[b]('x'),y=a[b]('y')
       
       */
-      math = Math,
-      min = math.min,
-      sin = math.sin,
-      cos = math.cos,
-      rnd = math.random,
       
       // Due to the way the math and circle drawing is done (and the
       // aforementioned three_sixty variable), it saves bytes to have a
       // reference to pi * 2 instead of just pi.
-      pi2 = math.PI * 2,
+      pi2 = PI * 2,
       pi_over_180 = pi2 / three_sixty,
       
       frame = 0,
       blip_current = 0,
       math_mode = 0,
       last_n = 0,
+      txt_idx = 0,
       
       /*
       // Because assignment operators have right-to-left associativity, it can
@@ -157,17 +156,15 @@
       'abcd'.split('')
       
       */
-      colors = 'f001fa01ff0107010ff100f14081e8e'.split(1),
       
       // These variables had to be removed due to byte considerations. While
       // hard-coding values is impractical from a readability/maintainance
       // standpoint, it can make the resulting code smaller.
       
-      // max_blips = 300,
       // num_items = 32,
       // num_colors = colors.length,
       
-      theta = rnd(
+      theta = random(
         
         /*
         // While assigning a variable or invoking a function inside the parens
@@ -200,7 +197,7 @@
         
       ) * three_sixty,
       
-      dir = rnd(
+      dir = random(
         
         // Allow user to "take control" by moving the mouse.
         onmousemove = function(event){
@@ -228,7 +225,7 @@
       // browsers, as well as IE9).
       
       // Change the mode, as long as it's not the last mode changed.
-      while ( last_n == ~~( tmp = rnd( tmp2 = rnd() ) * 6 ) );
+      while ( last_n == ~~( tmp = random( tmp2 = random() ) * 6 ) );
       last_n = ~~tmp;
       
       /*
@@ -258,16 +255,16 @@
       : tmp < 4 ? cycle_speed = tmp2 * 8 + 1
       // Change the "tightness".
       : tmp < 5 ? delay_speed = tmp2 * 3 + 1
-      // Change blip pulse sizes.
-      : blip_min_size = min( blip_max_size = tmp2 * 8 + 4, rnd() * 5 + 5 ) - 2;
+      // Cycle text chars.
+      : txt_idx++
     }
     
     // Set these values in each iteration to allow the window to be resized.
-    width = canvas.width = innerWidth;
-    height = canvas.height = innerHeight;
+    width = c.width = innerWidth;
+    height = c.height = innerHeight;
     max_radius = min( origin_x = width / 2, origin_y = height / 2 );
-    blip_scale = max_radius / three_sixty; // 400;
-    max_radius -= 20 * blip_scale;
+    blip_scale = max_radius / three_sixty * 6; // 400;
+    max_radius -= 4 * blip_scale;
     
     // Only override mouse movement generated x/y if mouse hasn't moved within
     // the last second.
@@ -285,9 +282,9 @@
         // Spiro.
         theta -= cycle_speed * dir * 2;
         
-        tmp = math.abs( x = sin( theta * pi_over_180 ) * max_radius );
+        tmp = abs( x = sin( theta * pi_over_180 ) * max_radius );
         
-        x = tmp * cos( tmp2 = math.atan2( 0, x ) + theta * pi_over_180 / math_mode );
+        x = tmp * cos( tmp2 = atan2( 0, x ) + theta * pi_over_180 / math_mode );
         y = tmp * sin( tmp2 );
       }
       
@@ -326,10 +323,10 @@
     }
     
     // Add new (or replace existing) blips.
-    //while ( tmp = items[ ~~( i * ( num_items - 1 ) / ( num_colors - 1 ) ) ] ) {
+    //for ( i = 0; tmp = items[ ~~( i * ( num_items - 1 ) / ( num_colors - 1 ) ) ]; ) {
     for ( i = 0; tmp = items[ i * 4 ]; ) {
       
-      blips[ blip_current++ % three_sixty /*max_blips*/ ] = {
+      blips[ blip_current++ % three_sixty /* ( num_colors * 45 ) */ ] = {
         s: 1,
         d: 1,
         c: colors[ ( color_idx + i++ ) % 8 /* num_colors */ ],
@@ -339,7 +336,7 @@
     }
     
     // BG fill.
-    context.fillRect( i = 0, 0, width, height );
+    fillRect( i = 0, 0, width, height );
     
     // Draw blips.
     while ( tmp = blips[i++] ) {
@@ -351,30 +348,16 @@
             : tmp.d;
       
       // Draw the blip.
-      context.beginPath( context.fillStyle = '#' + tmp.c );
-      context.fill( context.arc( origin_x + tmp.x, origin_y + tmp.y, tmp2 * blip_scale, 0, pi2, 0 ) );
-    }
-    
-    // Draw items (uncomment to see how items actually track the mouse or x/y)
-    /*
-    context.fillStyle = 'rgba(0,0,0,0.5)';
-    context.fillRect( 0, 0, width, height );
-    
-    // One less byte than a decrementing while loop, actually.
-    for ( i = thirty_two; i--; ) {
-      tmp = items[ i ];
-      tmp2 = 7 * blip_scale * ( thirty_two - i ) / thirty_two + 1;
+      fillStyle = '#' + tmp.c;
+      font = tmp2 * blip_scale + 'px Arial';
+      textAlign = 'center';
+      textBaseline = 'middle';
       
-      context.strokeStyle = '#fff';
-      context.lineWidth = tmp2 / 4;
-      context.beginPath();
-      context.arc( origin_x + tmp.x, origin_y + tmp.y, tmp2, 0, pi2, 0 );
-      context.stroke();
+      fillText( txt[ ( i + txt_idx ) % 5 /* txt.length */ ], origin_x + tmp.x, origin_y + tmp.y );
     }
-    */
     
   }, thirty_two /* 1e3 / fps */ )
 
-// Since YUI compressor adds a trailing ; to its output, this is adjusted
-// in minify.sh post-minification.
-})(document)
+// Since YUI compressor adds a trailing ; to its output and wraps with blocks in {},
+// this is adjusted in minify.sh post-minification.
+}( '\u2605\u2736\u2606\u2739\u2735', 'f001a001700140010f010a010701040'.split(1) )

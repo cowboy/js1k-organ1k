@@ -9,15 +9,18 @@ echo "Creating $MIN_SCRIPT from $SRC_SCRIPT..."
 yui.sh -v "$SRC_SCRIPT" > "$MIN_SCRIPT"
 
 # Fix these YUI compressor "issues"
+#  * remove unnecessary with {}
 #  * change 1000 -> 1e3
 #  * change 0.5 -> .5 (etc)
 #  * change {} -> ; (while loop)
 perl -p -0777 -i -e '
 
+s#with\((.*?)\)\{#with(\1)#g;
 s#(?<![\d\w])1000(?!=[\d\w])#1e3#g;
 s#(?<![\d\w])0\.(?=\d)#.#g;
 s#\{\}#;#g;
 s#;$##sm;
+s#}}$##sm;
 
 ' "$MIN_SCRIPT"
 
