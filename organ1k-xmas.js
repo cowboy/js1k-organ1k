@@ -12,7 +12,7 @@
 // in parens. Since I don't care about the return value of the function, it
 // can still be  invoked immediately, just as long as I prefix it with a unary
 // operator, like ! ~ + -.
-with(Math)with(a)!function(txt,colors){
+with(Math)with(a)!function(char_scale,txt,colors){
   /*
   // Passing a single var into the closure nets us two bytes of savings, but
   // since any more than that doesn't help, it's not worth doing for (cough)
@@ -95,6 +95,10 @@ with(Math)with(a)!function(txt,colors){
       
       */
       
+      // Now that I'm using `with(Math)`, the preceding comments are no longer
+      // relevant... but they're still interesting!
+      rnd = random,
+      
       // Due to the way the math and circle drawing is done (and the
       // aforementioned three_sixty variable), it saves bytes to have a
       // reference to pi * 2 instead of just pi.
@@ -105,7 +109,6 @@ with(Math)with(a)!function(txt,colors){
       blip_current = 0,
       math_mode = 0,
       last_n = 0,
-      txt_idx = 0,
       
       /*
       // Because assignment operators have right-to-left associativity, it can
@@ -164,7 +167,7 @@ with(Math)with(a)!function(txt,colors){
       // num_items = 32,
       // num_colors = colors.length,
       
-      theta = random(
+      theta = rnd(
         
         /*
         // While assigning a variable or invoking a function inside the parens
@@ -197,7 +200,7 @@ with(Math)with(a)!function(txt,colors){
         
       ) * three_sixty,
       
-      dir = random(
+      dir = rnd(
         
         // Allow user to "take control" by moving the mouse.
         onmousemove = function(event){
@@ -225,7 +228,7 @@ with(Math)with(a)!function(txt,colors){
       // browsers, as well as IE9).
       
       // Change the mode, as long as it's not the last mode changed.
-      while ( last_n == ~~( tmp = random( tmp2 = random() ) * 6 ) );
+      while ( last_n == ~~( tmp = rnd( tmp2 = rnd() ) * 5 ) );
       last_n = ~~tmp;
       
       /*
@@ -254,17 +257,15 @@ with(Math)with(a)!function(txt,colors){
       // Change the rotational velocity.
       : tmp < 4 ? cycle_speed = tmp2 * 8 + 1
       // Change the "tightness".
-      : tmp < 5 ? delay_speed = tmp2 * 3 + 1
-      // Cycle text chars.
-      : txt_idx++
+      : delay_speed = tmp2 * 3 + 2
     }
     
     // Set these values in each iteration to allow the window to be resized.
     width = c.width = innerWidth;
     height = c.height = innerHeight;
     max_radius = min( origin_x = width / 2, origin_y = height / 2 );
-    blip_scale = max_radius / three_sixty * 6; // 400;
-    max_radius -= 4 * blip_scale;
+    blip_scale = max_radius / three_sixty * 4; // 400;
+    max_radius -= 6 * blip_scale;
     
     // Only override mouse movement generated x/y if mouse hasn't moved within
     // the last second.
@@ -349,15 +350,15 @@ with(Math)with(a)!function(txt,colors){
       
       // Draw the blip.
       fillStyle = '#' + tmp.c;
-      font = tmp2 * blip_scale + 'px Arial';
+      font = tmp2 * blip_scale * char_scale + 'px Arial';
       textAlign = 'center';
       textBaseline = 'middle';
       
-      fillText( txt[ ( i + txt_idx ) % 5 /* txt.length */ ], origin_x + tmp.x, origin_y + tmp.y );
+      fillText( txt[ i % txt.length ], origin_x + tmp.x, origin_y + tmp.y );
     }
     
   }, thirty_two /* 1e3 / fps */ )
 
-// Since YUI compressor adds a trailing ; to its output and wraps with blocks in {},
+// Since YUI compressor adds a trailing ; to its output and wraps `with` blocks in {},
 // this is adjusted in minify.sh post-minification.
-}( '\u2605\u2736\u2606\u2739\u2735', 'f001a001700140010f010a010701040'.split(1) )
+}( 1.5, '\u2605\u2736\u2606\u2739\u2735\u2727\u2738', 'f001a001700140010f010a010701040'.split(1) )
