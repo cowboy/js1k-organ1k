@@ -1,0 +1,35 @@
+<!doctype html>
+<html>
+  <!--
+    Organ1k-Love: JS1k Love contest entry
+    
+    "An organic play of color that will hopefully keep you staring endlessly."
+    
+    Read all about it:
+    http://benalman.com/news/2010/08/organ1k-js1k-contest-entry/
+    
+    See it:
+    http://benalman.com/code/projects/js1k-organ1k/organ1k.html
+    
+    Complete source:
+    http://github.com/cowboy/js1k-organ1k
+    
+    Copyright (c) 2010 "Cowboy" Ben Alman
+    Dual licensed under the MIT and GPL licenses.
+    http://benalman.com/about/license/
+  -->
+  <head>
+    <title>Organ1k: Love Edition</title>
+    <meta charset="utf-8" />
+  </head>
+  <body>
+    <canvas id="c"></canvas>
+    <script>
+      var b = document.body;
+      var c = document.getElementsByTagName('canvas')[0];
+      var a = c.getContext('2d');
+      document.body.clientWidth; // fix bug in webkit: http://qfox.nl/weblog/218
+    </script>
+    <script src="organ1k-love.min.js"></script>
+  </body>
+</html>
